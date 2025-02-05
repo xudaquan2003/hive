@@ -180,8 +180,8 @@ func balanceAndNonceAtTest(t *TestEnv) {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
-	t.Logf("Waiting for transaction to be included in a block(3 seconds)")
-	time.Sleep(3 * time.Second)
+	// t.Logf("Waiting for transaction to be included in a block(3 seconds)")
+	// time.Sleep(3 * time.Second)
 
 	var receipt *types.Receipt
 	for {
@@ -210,8 +210,8 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	exp.Sub(exp, amount)
 	exp.Sub(exp, new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
 
-	t.Logf("GasPrice: %d", valueTx.GasPrice())
-	t.Logf("tx fee: %d", new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
+	// t.Logf("GasPrice: %d", valueTx.GasPrice())
+	// t.Logf("tx fee: %d", new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
 
 	if exp.Cmp(accountBalanceAfter) != 0 {
 		t.Errorf("Expected sender account to have a balance of %d, got %d", exp, accountBalanceAfter)
