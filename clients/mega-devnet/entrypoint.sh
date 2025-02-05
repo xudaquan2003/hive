@@ -28,5 +28,7 @@ devnet \
     --rpc.max-connections=50000 \
     --rpc.max-tracing-requests=200 \
     --rpc.eth-proof-window=210000 \
-    --metrics=0.0.0.0:9001
+    --metrics=0.0.0.0:9001 \
+    --network-node-type=sequencer \
+    --sequencer-public-key=03b793ec11629accadfd51835c82654391fad3f7489af36440155403e366dc6778 
 

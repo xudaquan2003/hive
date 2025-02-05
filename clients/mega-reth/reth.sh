@@ -156,6 +156,8 @@ if [ "$HIVE_TERMINAL_TOTAL_DIFFICULTY" != "" ]; then
     FLAGS="$FLAGS --authrpc.addr=0.0.0.0 --authrpc.jwtsecret=/jwt.secret"
 fi
 
+FLAGS="$FLAGS --network-node-type=sequencer --sequencer-public-key=03b793ec11629accadfd51835c82654391fad3f7489af36440155403e366dc6778"
+
 # Configure NAT
 FLAGS="$FLAGS --nat none"
 
