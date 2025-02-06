@@ -9,10 +9,12 @@ import (
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/hive/simulators/optimism/rpc/gasPriceOracle"
 )
 
 var (
@@ -67,6 +69,8 @@ contract Test {
 	predeployedContractWithAddress = common.HexToAddress("391694e7e0b0cce554cb130d723a9d27458f9298")
 	// holds the pre-deployed contract ABI
 	predeployedContractABI = `[{"constant":true,"inputs":[],"name":"ui","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"getFromMap","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"addr","type":"address"},{"name":"value","type":"uint256"}],"name":"addToMap","outputs":[],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"ui_","type":"uint256"},{"name":"addr_","type":"address"}],"name":"events","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"a","type":"uint256"},{"name":"b","type":"uint256"},{"name":"c","type":"uint256"}],"name":"constFunc","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[{"name":"ui_","type":"uint256"}],"payable":false,"type":"constructor"},{"anonymous":false,"inputs":[],"name":"E0","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"","type":"uint256"}],"name":"E1","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"","type":"uint256"}],"name":"E2","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"","type":"address"}],"name":"E3","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"","type":"address"}],"name":"E4","type":"event"},{"anonymous":true,"inputs":[{"indexed":false,"name":"","type":"uint256"},{"indexed":false,"name":"","type":"address"}],"name":"E5","type":"event"}]`
+
+	gasPriceOracleAddr = common.HexToAddress("0x420000000000000000000000000000000000000f")
 )
 
 var (
@@ -180,9 +184,6 @@ func balanceAndNonceAtTest(t *TestEnv) {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
-	// t.Logf("Waiting for transaction to be included in a block(3 seconds)")
-	// time.Sleep(3 * time.Second)
-
 	var receipt *types.Receipt
 	for {
 		receipt, err = t.Eth.TransactionReceipt(t.Ctx(), valueTx.Hash())
@@ -210,12 +211,35 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	exp.Sub(exp, amount)
 	exp.Sub(exp, new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
 
-	// t.Logf("GasPrice: %d", valueTx.GasPrice())
-	// t.Logf("tx fee: %d", new(big.Int).Mul(big.NewInt(int64(receipt.GasUsed)), valueTx.GasPrice()))
+	// t.Logf("Waiting for transaction to be included in a block(3 seconds)")
+	// time.Sleep(3 * time.Second)
+
+	err = waitForNBlocks(t, 1)
+	if err != nil {
+		t.Fatalf("Unable to wait for 1 block: %v", err)
+	}
+
+	contract, err := gasPriceOracle.NewGasPriceOracleCaller(gasPriceOracleAddr, t.Eth)
+	if err != nil {
+		t.Fatalf("Unable to instantiate contract caller: %v", err)
+	}
+
+	data, err := rawTx.MarshalBinary()
+	if err != nil {
+		t.Fatalf("Unable to marshal tx: %v", err)
+	}
+	opts := &bind.CallOpts{Pending: false, BlockNumber: receipt.BlockNumber}
+	l1Fee, err := contract.GetL1Fee(opts, data)
+	if err != nil {
+		t.Fatalf("Unable to GetL1Fee: %v", err)
+	}
+
+	exp.Sub(exp, l1Fee)
 
 	if exp.Cmp(accountBalanceAfter) != 0 {
 		t.Errorf("Expected sender account to have a balance of %d, got %d", exp, accountBalanceAfter)
 	}
+
 	if balanceTargetAccountAfter.Cmp(amount) != 0 {
 		t.Errorf("Expected new account to have a balance of %d, got %d", valueTx.Value(), balanceTargetAccountAfter)
 	}

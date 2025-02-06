@@ -181,6 +181,34 @@ func waitForTxConfirmations(t *TestEnv, txHash common.Hash, n uint64) (*types.Re
 	return nil, ethereum.NotFound
 }
 
+// Naive generic function that works in all situations.
+// A better solution is to use logs to wait for confirmations.
+func waitForNBlocks(t *TestEnv, n uint64) error {
+	var (
+		startBlock *types.Block
+		err        error
+	)
+
+	if startBlock, err = t.Eth.BlockByNumber(t.Ctx(), nil); err != nil {
+		return err
+	}
+
+	for i := 0; i < 90; i++ {
+		currentBlock, err := t.Eth.BlockByNumber(t.Ctx(), nil)
+		if err != nil {
+			return err
+		}
+
+		if startBlock.NumberU64()+n <= currentBlock.NumberU64() {
+			return nil
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	return ethereum.NotFound
+}
+
 // loggingRoundTrip writes requests and responses to the test log.
 type loggingRoundTrip struct {
 	t     *hivesim.T
