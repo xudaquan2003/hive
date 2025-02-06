@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 replace github.com/ethereum/go-ethereum v1.14.6-0.20241219150305-341647f1865d => github.com/ethereum-optimism/op-geth v1.101412.0-rc.2.0.20250124165829-1ab39853a132
 
-replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => github.com/xudaquan2003/hive v0.0.0-20250202131628-9ddd1e5ac0ac
+replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => github.com/xudaquan2003/hive v0.0.0-20250206100104-3d5ed7dd404a
 
 // replace github.com/ethereum/hive v0.0.0-20240715150147-c87a99dccfce => ../../../../hive
 
