@@ -7,6 +7,7 @@ if [ -f /genesis_account.json ]; then
 fi
 
 devnet \
+    node \
     --datadir=/data/op-reth/execution-data \
     --chain=/genesis.json \
     --http \
@@ -29,6 +30,15 @@ devnet \
     --rpc.max-tracing-requests=200 \
     --rpc.eth-proof-window=210000 \
     --metrics=0.0.0.0:9001 \
-    --network-node-type=sequencer \
-    --sequencer-public-key=03b793ec11629accadfd51835c82654391fad3f7489af36440155403e366dc6778 
+    --log.stdout.format=terminal \
+    --log.file.directory=/data/op-reth/execution-data/logs \
+    --log.file.filter=debug \
+    --log.file.max-size=400 \
+    --log.file.format=terminal \
+    --db.pipeline=16 \
+    --sequencer-public-key=03b793ec11629accadfd51835c82654391fad3f7489af36440155403e366dc6778 \
+    --node-type=sequencer \
+    --max-load=100 \
+    --handshake-interval=5 \
+    --rpc-cache.max-blocks=1000
 
