@@ -1,4 +1,4 @@
-FROM ethereum/client-go:latest AS base
+FROM ethereum/client-go:v1.15.0 AS base
 # release-1.13 or latest
 
 RUN apk add --no-cache jq yarn git linux-headers gcompat
