@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"time"
 
@@ -104,14 +105,21 @@ The RPC test suite runs a set of RPC related tests against a running node. It te
 several real-world scenarios such as sending value transactions, deploying a contract or
 interacting with one.`[1:],
 	}
-
-	// Add tests for full nodes.
-	suite.Add(&hivesim.TestSpec{
+	testSepc := &hivesim.TestSpec{
 		Name:        "client launch",
 		Description: `This test launches the client and collects its logs.`,
 		Run:         func(t *hivesim.T) { runAllTests(t) },
 		AlwaysRun:   true,
-	})
+	}
+	// standalone := os.Getenv("standalone")
+	standalone := "test"
+	if standalone != "" {
+		os.Setenv("HIVE_SIMULATOR", "http://localhost")
+		testSepc.Run = func(t *hivesim.T) { runTestStandAlone(t) }
+	}
+
+	// Add tests for full nodes.
+	suite.Add(testSepc)
 
 	// // Add tests to launch LES servers.
 	// serverParams := clientEnv.Set("HIVE_LES_SERVER", "1")
@@ -198,9 +206,9 @@ func runAllTests(t *hivesim.T) {
 				Run: func(t *hivesim.T) {
 					switch test.Name[:strings.IndexByte(test.Name, '/')] {
 					case "http":
-						runHTTP(t, d.L2.Client, vault, test.Run)
+						runHTTP(t, d.L2, vault, test.Run)
 					case "ws":
-						runWS(t, d.L2.Client, vault, test.Run)
+						runWS(t, d.L2, vault, test.Run)
 					default:
 						panic("bad test prefix in name " + test.Name)
 					}

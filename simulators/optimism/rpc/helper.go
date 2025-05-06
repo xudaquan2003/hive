@@ -17,6 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/hive/hivesim"
+	"github.com/ethereum/hive/optimism"
+
 	"github.com/kr/pretty"
 )
 
@@ -38,7 +40,7 @@ type TestEnv struct {
 }
 
 // runHTTP runs the given test function using the HTTP RPC client.
-func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
+func runHTTP(t *hivesim.T, l2 *optimism.L2Node, v *vault, fn func(*TestEnv)) {
 	// This sets up debug logging of the requests and responses.
 	client := &http.Client{
 		Transport: &loggingRoundTrip{
@@ -47,7 +49,7 @@ func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
 		},
 	}
 
-	rpcClient, _ := rpc.DialHTTPWithClient(fmt.Sprintf("http://%v:8545/", c.IP), client)
+	rpcClient, _ := rpc.DialHTTPWithClient(fmt.Sprintf("http://%v:%d/", l2.Client.IP, l2.HTTPPort), client)
 	defer rpcClient.Close()
 	env := &TestEnv{
 		T:     t,
@@ -62,9 +64,9 @@ func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
 }
 
 // runWS runs the given test function using the WebSocket RPC client.
-func runWS(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
+func runWS(t *hivesim.T, l2 *optimism.L2Node, v *vault, fn func(*TestEnv)) {
 	ctx, done := context.WithTimeout(context.Background(), 5*time.Second)
-	rpcClient, err := rpc.DialWebsocket(ctx, fmt.Sprintf("ws://%v:8546/", c.IP), "")
+	rpcClient, err := rpc.DialWebsocket(ctx, fmt.Sprintf("ws://%v:%d/", l2.Client.IP, l2.HTTPPort), "")
 	done()
 	if err != nil {
 		t.Fatal("WebSocket connection failed:", err)

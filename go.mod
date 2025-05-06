@@ -97,4 +97,6 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/hive/hiveproxy => ./hiveproxy
+replace github.com/ethereum/hive => ./
+
+replace github.com/xudaquan2003/hive => ./
