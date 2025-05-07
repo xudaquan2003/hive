@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"log"
 	"math/big"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -14,12 +16,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/hive/hivesim"
+	"github.com/ethereum/hive/optimism"
 )
 
 var (
 	// This is the account that sends vault funding transactions.
-	vaultAccountAddr = common.HexToAddress("0xcf49fda3be353c69b41ed96333cd24302da4556f")
-	vaultKey, _      = crypto.HexToECDSA("63b508a03c3b5937ceb903af8b1b0c191012ef6eb7e9c3fb7afa94e5d214d376")
+	vaultAccountAddr = common.HexToAddress("0x8769A5248c49cAE5215921e20eD374d581b6B53e")
+	vaultKey, _      = crypto.HexToECDSA("d421ab2c51dd3a34b779004243bcb5929b68539553997a35d1161be58d83d196")
 	// Address of the vault in genesis.
 	predeployedVaultAddr = common.HexToAddress("0000000000000000000000000000000000000315")
 	// Number of blocks to wait before funding tx is considered valid.
@@ -38,12 +44,29 @@ type vault struct {
 	nonce uint64
 	// Created accounts are tracked in this map.
 	accounts map[common.Address]*ecdsa.PrivateKey
+	// test chain id
+	chainId *big.Int
 }
 
-func newVault() *vault {
-	return &vault{
+func newVault(l2 *optimism.L2Node, t *hivesim.T) *vault {
+	rs := &vault{
 		accounts: make(map[common.Address]*ecdsa.PrivateKey),
 	}
+	client := &http.Client{
+		Transport: &loggingRoundTrip{
+			t:     t,
+			inner: http.DefaultTransport,
+		},
+	}
+	rpcClient, _ := rpc.DialHTTPWithClient(fmt.Sprintf("http://%v:%d/", l2.Client.IP, l2.HTTPPort), client)
+	defer rpcClient.Close()
+	eth := ethclient.NewClient(rpcClient)
+	chainId, err := eth.NetworkID(context.Background())
+	if err != nil {
+		log.Fatalf("failed to get chain id %+v", err)
+	}
+	rs.chainId = chainId
+	return rs
 }
 
 // generateKey creates a new account key and stores it.
@@ -74,7 +97,7 @@ func (v *vault) signTransaction(sender common.Address, tx *types.Transaction) (*
 	if key == nil {
 		return nil, fmt.Errorf("sender account %v not in vault", sender)
 	}
-	signer := types.NewEIP155Signer(chainID)
+	signer := types.NewEIP155Signer(v.chainId)
 	return types.SignTx(tx, signer, key)
 }
 
@@ -155,8 +178,6 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 			}
 		}
 	}
-
-	return address
 }
 
 // createAccount creates a new account that is funded from the vault contract.
@@ -201,18 +222,18 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 }
 
 func (v *vault) makeFundingTx(t *TestEnv, recipient common.Address, amount *big.Int) *types.Transaction {
-	vault, _ := abi.JSON(strings.NewReader(predeployedVaultABI))
-	payload, err := vault.Pack("sendSome", recipient, amount)
-	if err != nil {
-		t.Fatalf("can't pack pack vault tx input: %v", err)
-	}
+	// vault, _ := abi.JSON(strings.NewReader(predeployedVaultABI))
+	// payload, err := vault.Pack("sendSome", recipient, amount)
+	// if err != nil {
+	// 	t.Fatalf("can't pack pack vault tx input: %v", err)
+	// }
 	var (
-		nonce    = v.nextNonce()
+		nonce    = v.nextNonce(t)
 		gasLimit = uint64(75000)
-		txAmount = new(big.Int)
+		// txAmount = new(big.Int)
 	)
-	tx := types.NewTransaction(nonce, predeployedVaultAddr, txAmount, gasLimit, gasPrice, payload)
-	signer := types.NewEIP155Signer(chainID)
+	tx := types.NewTransaction(nonce, recipient, amount, gasLimit, gasPrice, nil)
+	signer := types.NewEIP155Signer(v.chainId)
 	signedTx, err := types.SignTx(tx, signer, vaultKey)
 	if err != nil {
 		t.Fatal("can't sign vault funding tx:", err)
@@ -221,10 +242,16 @@ func (v *vault) makeFundingTx(t *TestEnv, recipient common.Address, amount *big.
 }
 
 // nextNonce generates the nonce of a funding transaction.
-func (v *vault) nextNonce() uint64 {
+func (v *vault) nextNonce(t *TestEnv) uint64 {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-
+	if v.nonce == 0 {
+		nc, err := t.Eth.PendingNonceAt(t.Ctx(), vaultAccountAddr)
+		if err != nil {
+			log.Fatalf("failed to get nounce %+v", err)
+		}
+		v.nonce = nc
+	}
 	nonce := v.nonce
 	v.nonce++
 	return nonce

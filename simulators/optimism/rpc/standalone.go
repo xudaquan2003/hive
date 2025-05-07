@@ -15,9 +15,7 @@ func runTestStandAlone(t *hivesim.T) {
 	l2 := &optimism.L2Node{Client: client, HTTPPort: 9545, WSPort: 9546, AuthrpcPort: 9551}
 
 	t.Logf("L2.Client.HTTP_URL:\n %s\n", fmt.Sprintf("http://%v:%d", l2.Client.IP, l2.HTTPPort))
-
-	vault := newVault()
-
+	vault := newVault(l2, t)
 	s := newSemaphore(16)
 	for _, test := range tests {
 		test := test

@@ -192,7 +192,7 @@ func runAllTests(t *hivesim.T) {
 	// time.Sleep(10 * time.Second)
 	d.T.Logf("L2.Client.HTTP_URL:\n %s\n", fmt.Sprintf("http://%v:%d", d.L2.Client.IP, d.L2.HTTPPort))
 
-	vault := newVault()
+	vault := newVault(d.L2, t)
 
 	s := newSemaphore(16)
 	for _, test := range tests {
