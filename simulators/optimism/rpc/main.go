@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -115,7 +117,6 @@ interacting with one.`[1:],
 	standalone := "test"
 	if standalone != "" {
 		os.Setenv("HIVE_SIMULATOR", "http://localhost")
-		testSepc.Run = func(t *hivesim.T) { runTestStandAlone(t) }
 	}
 
 	// Add tests for full nodes.
@@ -179,15 +180,31 @@ func runAllTests(t *hivesim.T) {
 		Nodes: make(map[string]*hivesim.ClientDefinition),
 		Ctx:   ctx,
 	}
-	d.Start(chainID)
-	d.Wait()
-	d.InitL2(chainID)
-	accountOpts := hivesim.WithStaticFiles(files)
-	d.StartL2(accountOpts)
-	d.InitOp(chainID)
-	d.StartOp()
-	// d.StartL2OS()
-	d.StartBSS()
+	// standalone := os.Getenv("standalone")
+	standalone := "test"
+	if standalone != "" {
+		// load test env info
+		os.Setenv("HIVE_SIMULATOR", "http://localhost")
+		t.Log("running all tests standalone")
+		config, err := LoadConfig("config.yaml")
+		if err != nil {
+			log.Fatalf("Failed to load config: %v", err)
+		}
+		client := &hivesim.Client{IP: net.ParseIP(config.OpReth.IP)}
+		d.L2 = &optimism.L2Node{Client: client, HTTPPort: config.OpReth.HTTPPort, WSPort: config.OpReth.WSPort, AuthrpcPort: config.OpReth.AuthrpcPort}
+
+	} else {
+		// start test container
+		d.Start(chainID)
+		d.Wait()
+		d.InitL2(chainID)
+		accountOpts := hivesim.WithStaticFiles(files)
+		d.StartL2(accountOpts)
+		d.InitOp(chainID)
+		d.StartOp()
+		// d.StartL2OS()
+		d.StartBSS()
+	}
 
 	// time.Sleep(10 * time.Second)
 	d.T.Logf("L2.Client.HTTP_URL:\n %s\n", fmt.Sprintf("http://%v:%d", d.L2.Client.IP, d.L2.HTTPPort))
