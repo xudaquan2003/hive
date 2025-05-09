@@ -3,6 +3,7 @@ package hivesim
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"runtime"
@@ -397,7 +398,7 @@ func runTest(host *Simulation, test testSpec, runit func(t *T)) error {
 		runit(t)
 	}()
 	<-done
-	fmt.Printf("##### test case %s result %t #####", test.name, t.result.Pass)
+	log.Printf("##### test case %s finished. test result %t #####", test.name, t.result.Pass)
 	return nil
 }
 

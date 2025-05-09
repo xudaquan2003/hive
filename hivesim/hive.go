@@ -39,6 +39,8 @@ func New() *Simulation {
 	)
 	if cc := os.Getenv("HIVE_DOCS_MODE"); cc == "true" {
 		docs = NewDocsCollector()
+	} else if sa := os.Getenv("HIVE_STANDALONE_SIMULATOR"); sa == "true" {
+		fmt.Print("run simulator standalone")
 	} else {
 		var isSet bool
 		if url, isSet = os.LookupEnv("HIVE_SIMULATOR"); !isSet {
@@ -441,7 +443,7 @@ func requestDelete(url string) error {
 }
 
 func post(url string, requestObj interface{}, result interface{}) error {
-	standalone := "test"
+	standalone := os.Getenv("HIVE_STANDALONE_SIMULATOR")
 	if standalone != "" {
 		return nil
 	}

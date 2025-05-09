@@ -9,10 +9,12 @@ import (
 type Config struct {
 	OpReth struct {
 		IP          string `yaml:"ip"`
-		HTTPPort    uint16 `yaml:"http_port"`
-		WSPort      uint16 `yaml:"ws_port"`
-		AuthrpcPort uint16 `yaml:"authrpc_port"`
+		HTTPPort    uint16 `yaml:"http-port"`
+		WSPort      uint16 `yaml:"ws-port"`
+		AuthrpcPort uint16 `yaml:"authrpc-port"`
 	} `yaml:"op-reth"`
+	VaultAccountAddr string `yaml:"vault-account-addr"`
+	VaultKey         string `yaml:"vault-key"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

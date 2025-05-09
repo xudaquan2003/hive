@@ -113,12 +113,6 @@ interacting with one.`[1:],
 		Run:         func(t *hivesim.T) { runAllTests(t) },
 		AlwaysRun:   true,
 	}
-	// standalone := os.Getenv("standalone")
-	standalone := "test"
-	if standalone != "" {
-		os.Setenv("HIVE_SIMULATOR", "http://localhost")
-	}
-
 	// Add tests for full nodes.
 	suite.Add(testSepc)
 
@@ -180,16 +174,12 @@ func runAllTests(t *hivesim.T) {
 		Nodes: make(map[string]*hivesim.ClientDefinition),
 		Ctx:   ctx,
 	}
-	// standalone := os.Getenv("standalone")
-	standalone := "test"
+	config, err := LoadConfig("config.yaml")
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+	standalone := os.Getenv("HIVE_STANDALONE_SIMULATOR")
 	if standalone != "" {
-		// load test env info
-		os.Setenv("HIVE_SIMULATOR", "http://localhost")
-		t.Log("running all tests standalone")
-		config, err := LoadConfig("config.yaml")
-		if err != nil {
-			log.Fatalf("Failed to load config: %v", err)
-		}
 		client := &hivesim.Client{IP: net.ParseIP(config.OpReth.IP)}
 		d.L2 = &optimism.L2Node{Client: client, HTTPPort: config.OpReth.HTTPPort, WSPort: config.OpReth.WSPort, AuthrpcPort: config.OpReth.AuthrpcPort}
 
@@ -209,7 +199,7 @@ func runAllTests(t *hivesim.T) {
 	// time.Sleep(10 * time.Second)
 	d.T.Logf("L2.Client.HTTP_URL:\n %s\n", fmt.Sprintf("http://%v:%d", d.L2.Client.IP, d.L2.HTTPPort))
 
-	vault := newVault(d.L2, t)
+	vault := newVault(d.L2, t, config)
 
 	s := newSemaphore(16)
 	for _, test := range tests {

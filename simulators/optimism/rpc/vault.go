@@ -23,9 +23,6 @@ import (
 )
 
 var (
-	// This is the account that sends vault funding transactions.
-	vaultAccountAddr = common.HexToAddress("0x8769A5248c49cAE5215921e20eD374d581b6B53e")
-	vaultKey, _      = crypto.HexToECDSA("d421ab2c51dd3a34b779004243bcb5929b68539553997a35d1161be58d83d196")
 	// Address of the vault in genesis.
 	predeployedVaultAddr = common.HexToAddress("0000000000000000000000000000000000000315")
 	// Number of blocks to wait before funding tx is considered valid.
@@ -46,9 +43,13 @@ type vault struct {
 	accounts map[common.Address]*ecdsa.PrivateKey
 	// test chain id
 	chainId *big.Int
+	// vault root account addr
+	vaultAccountAddr common.Address
+	// vault root key
+	vaultKey *ecdsa.PrivateKey
 }
 
-func newVault(l2 *optimism.L2Node, t *hivesim.T) *vault {
+func newVault(l2 *optimism.L2Node, t *hivesim.T, config *Config) *vault {
 	rs := &vault{
 		accounts: make(map[common.Address]*ecdsa.PrivateKey),
 	}
@@ -66,6 +67,11 @@ func newVault(l2 *optimism.L2Node, t *hivesim.T) *vault {
 		log.Fatalf("failed to get chain id %+v", err)
 	}
 	rs.chainId = chainId
+	rs.vaultAccountAddr = common.HexToAddress(config.VaultAccountAddr)
+	rs.vaultKey, err = crypto.HexToECDSA(config.VaultKey)
+	if err != nil {
+		log.Fatalf("failed to convert root key %+v", err)
+	}
 	return rs
 }
 
@@ -234,7 +240,7 @@ func (v *vault) makeFundingTx(t *TestEnv, recipient common.Address, amount *big.
 	)
 	tx := types.NewTransaction(nonce, recipient, amount, gasLimit, gasPrice, nil)
 	signer := types.NewEIP155Signer(v.chainId)
-	signedTx, err := types.SignTx(tx, signer, vaultKey)
+	signedTx, err := types.SignTx(tx, signer, v.vaultKey)
 	if err != nil {
 		t.Fatal("can't sign vault funding tx:", err)
 	}
@@ -246,7 +252,7 @@ func (v *vault) nextNonce(t *TestEnv) uint64 {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if v.nonce == 0 {
-		nc, err := t.Eth.PendingNonceAt(t.Ctx(), vaultAccountAddr)
+		nc, err := t.Eth.PendingNonceAt(t.Ctx(), v.vaultAccountAddr)
 		if err != nil {
 			log.Fatalf("failed to get nounce %+v", err)
 		}
