@@ -224,6 +224,26 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 		}
 		time.Sleep(time.Second)
 	}
+	receipt, err := t.Eth.TransactionReceipt(t.Ctx(), tx.Hash())
+	if err != nil {
+		panic(fmt.Sprintf("could not fetch transaction receipt for %v: %v", tx.Hash(), err))
+	}
+
+	if receipt == nil {
+		panic(fmt.Sprintf("transaction %v is still pending or not mined", tx.Hash()))
+	}
+
+	if receipt.Status != types.ReceiptStatusSuccessful {
+		panic(fmt.Sprintf(
+			"transaction %v failed (status=0), likely due to: "+
+				"(1) Insufficient Gas, "+
+				"(2) Contract Revert, "+
+				"(3) Invalid Call Data. "+
+				"Check contract logs for details.",
+			tx.Hash(),
+		))
+	}
+
 	panic(fmt.Sprintf("could not fund account %v in transaction %v", address, tx.Hash()))
 }
 
@@ -236,7 +256,7 @@ func (v *vault) makeFundingTx(t *TestEnv, recipient common.Address, amount *big.
 	var (
 		nonce    = v.nextNonce(t)
 		gasLimit = uint64(75000)
-		// txAmount = new(big.Int)
+		//txAmount = new(big.Int)
 	)
 	tx := types.NewTransaction(nonce, recipient, amount, gasLimit, gasPrice, nil)
 	signer := types.NewEIP155Signer(v.chainId)

@@ -4,5 +4,7 @@ op-reth:
   ws-port: 19546
   authrpc-port: 19551
 
-vault-account-addr: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
-vault-key: "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+# vault-account-addr: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+# vault-key: "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+vault-account-addr: "0xcf49fda3be353c69b41ed96333cd24302da4556f"
+vault-key: "63b508a03c3b5937ceb903af8b1b0c191012ef6eb7e9c3fb7afa94e5d214d376"
