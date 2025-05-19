@@ -160,6 +160,7 @@ type Client struct {
 	Type      string
 	Container string
 	IP        net.IP
+	Host      string
 
 	mu        sync.Mutex
 	rpc       *rpc.Client

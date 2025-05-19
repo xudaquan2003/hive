@@ -191,6 +191,10 @@ func runAllTests(t *hivesim.T) {
 	standalone := os.Getenv("HIVE_STANDALONE_SIMULATOR")
 	if standalone != "" {
 		client := &hivesim.Client{IP: net.ParseIP(config.OpReth.IP)}
+		//no ip ,use host name
+		if client.IP == nil {
+			client.Host = config.OpReth.IP
+		}
 		d.L2 = &optimism.L2Node{Client: client, HTTPPort: config.OpReth.HTTPPort, WSPort: config.OpReth.WSPort, AuthrpcPort: config.OpReth.AuthrpcPort}
 
 	} else {

@@ -59,7 +59,11 @@ func newVault(l2 *optimism.L2Node, t *hivesim.T, config *Config) *vault {
 			inner: http.DefaultTransport,
 		},
 	}
-	rpcClient, _ := rpc.DialHTTPWithClient(fmt.Sprintf("http://%v:%d/", l2.Client.IP, l2.HTTPPort), client)
+	url := fmt.Sprintf("http://%v:%d/", l2.Client.IP, l2.HTTPPort)
+	if l2.Client.IP == nil {
+		url = fmt.Sprintf("http://%v:%d/", l2.Client.Host, l2.HTTPPort)
+	}
+	rpcClient, _ := rpc.DialHTTPWithClient(url, client)
 	defer rpcClient.Close()
 	eth := ethclient.NewClient(rpcClient)
 	chainId, err := eth.NetworkID(context.Background())
