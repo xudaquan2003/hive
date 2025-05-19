@@ -165,10 +165,10 @@ func waitForTxConfirmations(t *TestEnv, txHash common.Hash, n uint64) (*types.Re
 			return nil, err
 		}
 
-		if startBlock.NumberU64()+n >= currentBlock.NumberU64() {
+		if startBlock.NumberU64()+n < currentBlock.NumberU64() {
 			if checkReceipt, err := t.Eth.TransactionReceipt(t.Ctx(), txHash); checkReceipt != nil {
 				if bytes.Compare(receipt.PostState, checkReceipt.PostState) == 0 {
-					return receipt, nil
+					return checkReceipt, nil
 				} else { // chain reorg
 					waitForTxConfirmations(t, txHash, n)
 				}
