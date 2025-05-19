@@ -8,3 +8,4 @@ workspace
 simulators/**/target
 hivesim-rs/Cargo.lock
 hivesim-rs/target
+pkg/*

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -163,6 +164,14 @@ interacting with one.`[1:],
 // 	})
 // }
 
+func getExecDir() string {
+	ex, err := os.Executable()
+	if err != nil {
+		return "."
+	}
+	return filepath.Dir(ex)
+}
+
 // runAllTests runs the tests against a client instance.
 // Most tests simply wait for tx inclusion in a block so we can run many tests concurrently.
 func runAllTests(t *hivesim.T) {
@@ -174,7 +183,8 @@ func runAllTests(t *hivesim.T) {
 		Nodes: make(map[string]*hivesim.ClientDefinition),
 		Ctx:   ctx,
 	}
-	config, err := LoadConfig("config.yaml")
+	configPath := filepath.Join(getExecDir(), "config.yaml")
+	config, err := LoadConfig(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
