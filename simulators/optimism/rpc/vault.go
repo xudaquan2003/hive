@@ -276,11 +276,16 @@ func (v *vault) nextNonce(t *TestEnv) uint64 {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if v.nonce == 0 {
-		nc, err := t.Eth.PendingNonceAt(t.Ctx(), v.vaultAccountAddr)
-		if err != nil {
-			log.Fatalf("failed to get nounce %+v", err)
+		for i := 0; i < 5; i++ {
+			nc, err := t.Eth.PendingNonceAt(t.Ctx(), v.vaultAccountAddr)
+			if err != nil {
+				log.Printf("failed to get nounce %+v", err)
+				time.Sleep(3 * time.Second)
+				continue
+			}
+			v.nonce = nc
+			break
 		}
-		v.nonce = nc
 	}
 	nonce := v.nonce
 	v.nonce++
