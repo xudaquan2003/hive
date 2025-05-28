@@ -39,13 +39,47 @@ type TestEnv struct {
 	lastCancel context.CancelFunc
 }
 
+type retryTransport struct {
+	inner      http.RoundTripper
+	maxRetries int
+}
+
+func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	var (
+		resp *http.Response
+		err  error
+	)
+
+	// only for get method
+	if req.Method != http.MethodGet && req.Method != http.MethodHead {
+		return t.inner.RoundTrip(req)
+	}
+
+	// retry request
+	for i := 0; i <= t.maxRetries; i++ {
+		if i > 0 {
+			time.Sleep(time.Duration(i*i) * 100 * time.Millisecond)
+		}
+
+		resp, err = t.inner.RoundTrip(req)
+		if err == nil && resp.StatusCode < 500 {
+			return resp, nil
+		}
+	}
+	return resp, err
+}
+
 // runHTTP runs the given test function using the HTTP RPC client.
 func runHTTP(t *hivesim.T, l2 *optimism.L2Node, v *vault, fn func(*TestEnv)) {
-	// This sets up debug logging of the requests and responses.
+	retryTrans := &retryTransport{
+		inner:      http.DefaultTransport,
+		maxRetries: 3,
+	}
+
 	client := &http.Client{
 		Transport: &loggingRoundTrip{
 			t:     t,
-			inner: http.DefaultTransport,
+			inner: retryTrans,
 		},
 	}
 	url := fmt.Sprintf("http://%v:%d/", l2.Client.IP, l2.HTTPPort)
@@ -68,13 +102,22 @@ func runHTTP(t *hivesim.T, l2 *optimism.L2Node, v *vault, fn func(*TestEnv)) {
 
 // runWS runs the given test function using the WebSocket RPC client.
 func runWS(t *hivesim.T, l2 *optimism.L2Node, v *vault, fn func(*TestEnv)) {
-	ctx, done := context.WithTimeout(context.Background(), 5*time.Second)
-	url := fmt.Sprintf("ws://%v:%d/", l2.Client.IP, l2.WSPort)
-	if l2.Client.IP == nil {
-		url = fmt.Sprintf("ws://%v:%d/", l2.Client.Host, l2.WSPort)
+	var rpcClient *rpc.Client
+	var err error
+	for i := 0; i < 3; i++ {
+		ctx, done := context.WithTimeout(context.Background(), 5*time.Second)
+		url := fmt.Sprintf("ws://%v:%d/", l2.Client.IP, l2.WSPort)
+		if l2.Client.IP == nil {
+			url = fmt.Sprintf("ws://%v:%d/", l2.Client.Host, l2.WSPort)
+		}
+		rpcClient, err = rpc.DialWebsocket(ctx, url, "")
+		if err == nil {
+			done()
+			break
+		}
+		done()
+		time.Sleep(time.Duration(i*i) * 100 * time.Millisecond)
 	}
-	rpcClient, err := rpc.DialWebsocket(ctx, url, "")
-	done()
 	if err != nil {
 		t.Fatal("WebSocket connection failed:", err)
 	}
